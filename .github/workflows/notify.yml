@@ -1,0 +1,33 @@
+name: 일일 평가 보고서 이메일 알림
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'reports/**.md'
+
+jobs:
+  send-email:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 보고서 내용 추출
+        run: |
+          REPORT=$(git show --name-only HEAD | grep "reports/.*\.md" | head -1)
+          DATE=$(echo "$REPORT" | grep -oP '\d{4}-\d{2}-\d{2}')
+          echo "REPORT_DATE=$DATE" >> $GITHUB_ENV
+          cat "$REPORT" > /tmp/report.md
+
+      - name: 이메일 발송
+        uses: dawidd6/action-send-mail@v3
+        with:
+          server_address: smtp.gmail.com
+          server_port: 465
+          secure: true
+          username: ${{ secrets.GMAIL_USER }}
+          password: ${{ secrets.GMAIL_APP_PASSWORD }}
+          subject: "[${{ env.REPORT_DATE }}] 일일 연구 진행 평가 보고서"
+          to: ju980915@snu.ac.kr
+          from: "Chavis Research Bot <${{ secrets.GMAIL_USER }}>"
+          body: file:///tmp/report.md
